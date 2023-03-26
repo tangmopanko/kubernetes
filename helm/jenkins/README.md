@@ -1,8 +1,8 @@
 # Jenkins 
--- 
-## helm 3 install documents 참고, 그외 명령어 및 수정 내용만 작성 할 예정
+## helm 3 install documents 참고
 [install](https://www.jenkins.io/doc/book/installing/kubernetes/)
 [install with Helm3](htps:t//www.jenkins.io/doc/book/installing/kubernetes/#install-jenkins-with-helm-v3)
+
 ```
 # jenkinsci/jenkins, jenkins/jenkins가 있는데 tag버전이 동일한거 보니 경로만 다른듯? 확실치 않음. 
 > helm search repo -l jenkinsci/jenkins
@@ -37,18 +37,46 @@ persistentvolume/jenkins-pv-volume   10Gi       RWO            Retain           
 > curl -LO https://raw.githubusercontent.com/jenkinsci/helm-charts/main/charts/jenkins/values.yaml
 
 # serviceAccount: create: false로 수정 
-> h install jenkins jenkinsci/jenkins --version 4.3.9 -f ./values.yaml --namespace=devops-tools --dry-run
+
+controller.serviceType=NordPort 
+persistence.existingClaim=jenkins-pv-claim
+serviceAccount.create=false
+serviceAccount.name=jenkins-admin
+controller.resources.requests.cpu=500m
+controller.resources.requests.memory=512Mi 
+
+> h install jenkins jenkinsci/jenkins --version 4.3.9 -f ./jenkins.values.yaml --namespace=devops-tools --dry-run
 
 > kubectl get all -l app.kubernetes.io/name=jenkins
 
 > k describe statefulset.apps/jenkins --namespace=devops-tools
 
+
+NOTES:
+1. Get your 'admin' user password by running:
+  kubectl exec --namespace devops-tools -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+2. Get the Jenkins URL to visit by running these commands in the same shell:
+  export NODE_PORT=$(kubectl get --namespace devops-tools -o jsonpath="{.spec.ports[0].nodePort}" services jenkins)
+  export NODE_IP=$(kubectl get nodes --namespace devops-tools -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+3. Login with the password from step 1 and the username: admin
+4. Configure security realm and authorization strategy
+5. Use Jenkins Configuration as Code by specifying configScripts in your values.yaml file, see documentation: http://$NODE_IP:$NODE_PORT/configuration-as-code and examples: https://github.com/jenkinsci/configuration-as-code-plugin/tree/master/demos
+
 ```
-controller.serviceType=NordPort 
-persistence.existingClaim=
-serviceAccount.create=false
-controller.resources.requests.cpu=500m
-controller.resources.requests.memory=512Mi 
+1. NOTES
+ - admin pwd: gvmxJGX9gyjDrZvLro0kFD
+ - Jenkins URL - http://192.168.56.10:30701 
+    1. virtual-box port-forwarding 설정 
+        - 60016(clinet - port) : 30701(vmware - nodePort)
+    2. 접속 
+        - http://localhost:60015/login?from=%2F
+ - 
+
+
+
+
 
 ## 레퍼런스 
 https://arisu1000.tistory.com/27848
